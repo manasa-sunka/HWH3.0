@@ -1,0 +1,32 @@
+{
+  "incident_id": "INC-001",
+  "service": "Payment API",
+  "severity": "HIGH",
+  "events": [
+    {
+      "timestamp": "10:01",
+      "type": "metric",
+      "message": "CPU usage increased to 92%"
+    },
+    {
+      "timestamp": "10:02",
+      "type": "metric",
+      "message": "API latency increased to 4.8 seconds"
+    },
+    {
+      "timestamp": "10:03",
+      "type": "error",
+      "message": "Database connection pool exhausted"
+    },
+    {
+      "timestamp": "10:04",
+      "type": "error",
+      "message": "Payment API requests failing with HTTP 503"
+    },
+    {
+      "timestamp": "10:05",
+      "type": "alert",
+      "message": "Payment API availability below threshold"
+    }
+  ]
+}
