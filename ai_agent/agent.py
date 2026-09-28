@@ -1,59 +1,80 @@
 import json
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+from google import genai
+
+
+# Project location
+project_root = Path(__file__).resolve().parent.parent
+
+# Load Gemini API key
+load_dotenv(project_root / "backend" / ".env")
+
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
+)
 
 
 def load_incident():
-    project_root = Path(__file__).resolve().parent.parent
     incident_file = project_root / "data" / "incident.json"
 
     with open(incident_file, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
+def analyze_with_ai(incident):
+
+    prompt = f"""
+You are Hindsight, an AI incident response investigator.
+
+Analyze the software incident using ONLY the evidence provided.
+
+Rules:
+1. Do not invent facts.
+2. Analyze events chronologically.
+3. Separate evidence from inference.
+4. Treat root cause as a hypothesis unless directly proven.
+5. Explain why the root cause is suspected.
+6. Identify uncertainty.
+7. Recommend practical next actions.
+
+Return ONLY valid JSON in this format:
+
+{{
+  "incident_id": "...",
+  "service": "...",
+  "severity": "...",
+  "timeline": [],
+  "observations": [],
+  "root_cause": "...",
+  "confidence": "HIGH/MEDIUM/LOW",
+  "evidence": [],
+  "recommended_actions": [],
+  "uncertainty": []
+}}
+
+Incident:
+
+{json.dumps(incident, indent=2)}
+"""
+
+    response = client.models.generate_content(
+        model="gemini-3.5-flash-lite",
+        contents=prompt
+    )
+
+    text = response.text
+
+    # Remove markdown code fences if Gemini adds them
+    text = text.replace("```json", "").replace("```", "").strip()
+
+    return json.loads(text)
+
+
 def analyze_incident(incident):
-    events = incident["events"]
-
-    timeline = []
-
-    for event in events:
-        timeline.append({
-            "time": event["timestamp"],
-            "type": event["type"],
-            "message": event["message"]
-        })
-
-    database_issue = any(
-        "connection pool exhausted" in event["message"].lower()
-        for event in events
-    )
-
-    payment_failure = any(
-        "503" in event["message"]
-        for event in events
-    )
-
-    if database_issue and payment_failure:
-        root_cause = (
-            "Database connection pool exhaustion is the likely root cause "
-            "of the Payment API failures."
-        )
-        confidence = "HIGH"
-    else:
-        root_cause = "Root cause could not be determined."
-        confidence = "LOW"
-
-    return {
-        "incident_id": incident["incident_id"],
-        "service": incident["service"],
-        "severity": incident["severity"],
-        "timeline": timeline,
-        "root_cause": root_cause,
-        "confidence": confidence,
-        "evidence": [
-            "Database connection pool exhausted",
-            "Payment API requests failing with HTTP 503"
-        ]
-    }
+    return analyze_with_ai(incident)
 
 
 def run_analysis():
