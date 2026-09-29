@@ -1,48 +1,33 @@
-import sys
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from fastapi import FastAPI
-from pydantic import BaseModel
-from ai_agent.agent import analyze_incident
-
-
-app = FastAPI(
-    title="Hindsight AI Incident Response Agent",
-    description="AI-powered incident analysis system",
-    version="1.0.0"
-)
+from pydantic import BaseModel, Field
+from typing import List
 
 
 class Event(BaseModel):
-    timestamp: str
-    type: str
-    message: str
+    timestamp: str = Field(
+        ...,
+        examples=["2026-09-28T22:30:15Z"]
+    )
+    type: str = Field(
+        ...,
+        examples=["ERROR"]
+    )
+    message: str = Field(
+        ...,
+        examples=["Database connection timeout"]
+    )
 
 
-class Incident(BaseModel):
-    incident_id: str
-    service: str
-    severity: str
-    events: list[Event]
-
-
-@app.get("/")
-def root():
-    return {
-        "message": "Hindsight AI Incident Response Agent is running"
-    }
-
-
-@app.get("/health")
-def health():
-    return {
-        "status": "ok"
-    }
-
-
-@app.post("/analyze")
-def analyze(incident: Incident):
-    return analyze_incident(incident.model_dump())
+class IncidentRequest(BaseModel):
+    incident_id: str = Field(
+        ...,
+        examples=["INC-2026-001"]
+    )
+    service: str = Field(
+        ...,
+        examples=["payment-service"]
+    )
+    severity: str = Field(
+        ...,
+        examples=["HIGH"]
+    )
+    events: List[Event]
